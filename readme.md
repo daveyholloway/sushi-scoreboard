@@ -46,17 +46,17 @@ Can test the API code from a browser:
 
 ###### API call with no parameters - List all events
 
-http://192.168.127.10/sushi/api.php?action=list\_events
+http://<<Server IP>>/sushi/api.php?action=list\_events
 
 
 
 ###### API call with a parameter - Return various datasets for a given event
 
-http://192.168.127.10/sushi/api.php?action=get\_event\_setup\&event\_id=1
+http://<<Server IP>>/sushi/api.php?action=get\_event\_setup\&event\_id=1
 
-http://192.168.127.10/sushi/api.php?action=get\_totals\&event\_id=1
+http://<<Server IP>>/sushi/api.php?action=get\_totals\&event\_id=1
 
-http://192.168.127.10/sushi/api.php?action=get\_grid\_data\&event\_id=1
+http://<<Server IP>>/sushi/api.php?action=get\_grid\_data\&event\_id=1
 
 
 
@@ -66,7 +66,7 @@ Use the browser console (F12), examples below:
 
 
 
-fetch("http://192.168.127.10/sushi/api.php?action=create\_event", {
+fetch("http://<<Server IP>>/sushi/api.php?action=create\_event", {
 
 &#x20; method: "POST",
 
@@ -84,7 +84,7 @@ fetch("http://192.168.127.10/sushi/api.php?action=create\_event", {
 
 
 
-fetch("http://192.168.127.10/sushi/api.php?action=set\_event\_participants", {
+fetch("http://<<Server IP>>/sushi/api.php?action=set\_event\_participants", {
 
 &#x20; method: "POST",
 
