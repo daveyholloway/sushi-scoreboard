@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sushi Tracker API Tester</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { display: block; margin-top: 10px; }
+    textarea { width: 100%; height: 120px; }
+    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; }
+    .row { margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<h2>Sushi Tracker API Tester</h2>
+
+<div class="row">
+    <label>API Base URL:</label>
+    <input id="base" type="text" style="width:100%;" 
+           value="http://192.168.127.10/sushi/api.php">
+</div>
+
+<div class="row">
+    <label>Action:</label>
+    <select id="action">
+        <option value="list_events">list_events (GET)</option>
+        <option value="create_event">create_event (POST)</option>
+        <option value="list_participants">list_participants (GET)</option>
+        <option value="set_event_participants">set_event_participants (POST)</option>
+        <option value="get_event_setup">get_event_setup (GET)</option>
+        <option value="save_prices">save_prices (POST)</option>
+        <option value="increment_plate">increment_plate (POST)</option>
+        <option value="increment_menu">increment_menu (POST)</option>
+        <option value="get_totals">get_totals (GET)</option>
+        <option value="get_grid_data">get_grid_data (GET)</option>
+    </select>
+</div>
+
+<div class="row">
+    <label>Parameters (JSON for POST actions):</label>
+    <textarea id="params">{}</textarea>
+</div>
+
+<button onclick="sendRequest()">Send Request</button>
+
+<h3>Response:</h3>
+<pre id="output"></pre>
+
+<script>
+function sendRequest() {
+    const base = document.getElementById("base").value.trim();
+    const action = document.getElementById("action").value;
+    const params = document.getElementById("params").value.trim();
+    const output = document.getElementById("output");
+
+    const url = base + "?action=" + encodeURIComponent(action);
+
+    // GET actions
+    const getActions = [
+        "list_events", "list_participants",
+        "get_event_setup", "get_totals", "get_grid_data"
+    ];
+
+    if (getActions.includes(action)) {
+        fetch(url)
+            .then(r => r.json())
+            .then(j => output.textContent = JSON.stringify(j, null, 2))
+            .catch(e => output.textContent = e);
+        return;
+    }
+
+    // POST actions
+    let body = {};
+    try { body = JSON.parse(params); }
+    catch { output.textContent = "Invalid JSON"; return; }
+
+    fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+    .then(r => r.json())
+    .then(j => output.textContent = JSON.stringify(j, null, 2))
+    .catch(e => output.textContent = e);
+}
+</script>
+
+</body>
+</html>
