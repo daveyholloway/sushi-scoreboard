@@ -2,7 +2,7 @@
 -- Create database and user
 CREATE DATABASE sushi_tracker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE USER 'sushi_user'@'localhost' IDENTIFIED BY 'supersecretsushipa55worD';
+CREATE USER 'sushi_user'@'localhost' IDENTIFIED BY '<<Your database password>>';
 GRANT ALL PRIVILEGES ON sushi_tracker.* TO 'sushi_user'@'localhost';
 FLUSH PRIVILEGES;
 
