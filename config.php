@@ -3,7 +3,7 @@
 $DB_HOST = 'localhost';
 $DB_NAME = 'sushi_tracker';
 $DB_USER = 'sushi_user';
-$DB_PASS = '<<Your database password>>';
+$DB_PASS = 'supersecretsushipa55worD';
 
 function db() : PDO {
     static $pdo = null;

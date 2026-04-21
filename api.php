@@ -16,11 +16,13 @@ $input = json_decode(file_get_contents('php://input'), true);
 if (!is_array($input)) $input = [];
 
 switch ($action) {
+    // List Events
     case 'list_events':
         $stmt = $pdo->query("SELECT id, name, event_date FROM events ORDER BY event_date DESC, id DESC");
         echo json_encode(['ok' => true, 'events' => $stmt->fetchAll()]);
         break;
 
+    // Create Events
     case 'create_event':
         $name = trim($input['name'] ?? '');
         $date = trim($input['event_date'] ?? '');
@@ -30,11 +32,13 @@ switch ($action) {
         echo json_encode(['ok' => true, 'event_id' => $pdo->lastInsertId()]);
         break;
 
+    // List Participants
     case 'list_participants':
         $stmt = $pdo->query("SELECT id, name FROM participants ORDER BY name");
         echo json_encode(['ok' => true, 'participants' => $stmt->fetchAll()]);
         break;
 
+    // Set Particiipants for an Event
     case 'set_event_participants':
         $event_id = (int)($input['event_id'] ?? 0);
         $existing_ids = $input['participant_ids'] ?? [];
@@ -71,6 +75,7 @@ switch ($action) {
         }
         break;
 
+    // Event setup - whatever that is!?
     case 'get_event_setup':
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
@@ -133,6 +138,7 @@ switch ($action) {
         ]);
         break;
 
+    // Save Prices
     case 'save_prices':
         $event_id = (int)($input['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
@@ -177,6 +183,7 @@ switch ($action) {
         }
         break;
 
+    // Increment a plate for a given user at a given event.
     case 'increment_plate':
         $event_id = (int)($input['event_id'] ?? 0);
         $participant_id = (int)($input['participant_id'] ?? 0);
@@ -206,6 +213,7 @@ switch ($action) {
         }
         break;
 
+    // Increment a menu item for a given user at a given event.
     case 'increment_menu':
         $event_id = (int)($input['event_id'] ?? 0);
         $participant_id = (int)($input['participant_id'] ?? 0);
@@ -235,6 +243,7 @@ switch ($action) {
         }
         break;
 
+    // Get the totals for a given event.
     case 'get_totals':
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
@@ -272,6 +281,7 @@ switch ($action) {
         echo json_encode(['ok' => true, 'per_person' => $per_person]);
         break;
 
+    // Get Grid data - whatever that is!?
     case 'get_grid_data':
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
@@ -295,6 +305,7 @@ switch ($action) {
         echo json_encode(['ok' => true, 'plate' => $plate, 'menu' => $menu]);
         break;
 
+    // Handle unexpected input.
     default:
         json_error('Unknown action', 404);
 }
