@@ -13,6 +13,7 @@ DROP PROCEDURE IF EXISTS sp_create_participant ;
 DROP PROCEDURE IF EXISTS sp_delete_participant ;
 DROP PROCEDURE IF EXISTS sp_edit_participant ;
 
+DROP PROCEDURE IF EXISTS sp_list_plates ;
 
 DROP PROCEDURE IF EXISTS sp_add_participant_by_id;
 DROP PROCEDURE IF EXISTS sp_add_participant_by_name;
@@ -129,6 +130,23 @@ BEGIN
     FROM participant
     WHERE id = p_participant_id ;
 END $$
+
+-- ****************************************************************************
+-- List all Plates
+-- ===============
+--
+-- Returns a result set of all plates in the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_list_plates()
+BEGIN
+    SELECT id, name, hex_colour, price
+    FROM plate
+    ORDER BY id ;
+END $$
+
+
+
+
 
 -- ****************************************************************************
 -- List Participants for a given Event
