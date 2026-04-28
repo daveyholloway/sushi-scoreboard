@@ -1,15 +1,21 @@
-USE sushi;
+USE sushi_scoreboard;
 
 DELIMITER $$
 
 -- Drop everything first (if it exists)
 DROP PROCEDURE IF EXISTS sp_list_events;
 DROP PROCEDURE IF EXISTS sp_create_event;
-DROP PROCEDURE IF EXISTS sp_delete_event;                    --TODO
-DROP PROCEDURE IF EXISTS sp_edit_event;                      --TODO
-DROP PROCEDURE IF EXISTS sp_list_participants ;
-DROP PROCEDURE IF EXISTS sp_add_participant_by_id ;
-DROP PROCEDURE IF EXISTS sp_add_participant_by_name ;        --TODO
+DROP PROCEDURE IF EXISTS sp_delete_event;
+DROP PROCEDURE IF EXISTS sp_edit_event;
+
+DROP PROCEDURE IF EXISTS sp_list_participants;
+DROP PROCEDURE IF EXISTS sp_create_participant ;
+DROP PROCEDURE IF EXISTS sp_delete_participant ;
+DROP PROCEDURE IF EXISTS sp_edit_participant ;
+
+
+DROP PROCEDURE IF EXISTS sp_add_participant_by_id;
+DROP PROCEDURE IF EXISTS sp_add_participant_by_name;
 
 -- ****************************************************************************
 -- List Events
@@ -40,7 +46,7 @@ BEGIN
     VALUES (p_name, p_event_date);
 
     SELECT *
-    FROM events
+    FROM event
     WHERE id = LAST_INSERT_ID();
 END $$
 
@@ -59,7 +65,70 @@ END $$
 --
 -- Pass in an event ID and update the description to the value provided.
 -- ****************************************************************************
--- TODO
+CREATE PROCEDURE sp_edit_event(
+    IN p_event_id   INT(10),
+    IN p_name       VARCHAR(150)
+)
+BEGIN
+    UPDATE event
+       SET name = p_name
+     WHERE id = p_event_id ;
+
+    SELECT *
+    FROM event
+    WHERE id = p_event_id ;
+END $$
+
+-- ****************************************************************************
+-- List all currently recorded participants
+-- ========================================
+--
+-- Returns a result set of all the participants in the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_list_participants()
+BEGIN
+    SELECT id, name
+    FROM participant
+    ORDER BY id DESC ;
+END $$
+
+-- ****************************************************************************
+-- Create a new Participant
+-- ========================
+--
+-- Adds a new participant to the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_create_participant(
+    IN p_name VARCHAR(100)
+)
+BEGIN
+    INSERT INTO participant (name)
+    VALUES (p_name);
+
+    SELECT *
+    FROM participant 
+    WHERE id = LAST_INSERT_ID();
+END $$
+
+-- ****************************************************************************
+-- Edit an participant
+-- ===================
+--
+-- Pass in a Participant ID and update the name to the value provided.
+-- ****************************************************************************
+CREATE PROCEDURE sp_edit_participant(
+    IN p_participant_id   INT(10),
+    IN p_name             VARCHAR(100)
+)
+BEGIN
+    UPDATE participant
+       SET name = p_name
+     WHERE id = p_participant_id ;
+
+    SELECT *
+    FROM participant
+    WHERE id = p_participant_id ;
+END $$
 
 -- ****************************************************************************
 -- List Participants for a given Event
@@ -68,7 +137,7 @@ END $$
 -- Returns a result set of all the participants in the database for the
 -- given event.
 -- ****************************************************************************
-CREATE PROCEDURE sp_list_participants(
+/*CREATE PROCEDURE sp_list_participants(
     IN p_event_id   INT
 )
 BEGIN
@@ -208,6 +277,6 @@ BEGIN
     );
 END$$
 
-
+*/
 
 DELIMITER ;
