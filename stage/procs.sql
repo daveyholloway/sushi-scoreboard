@@ -19,9 +19,9 @@ DROP PROCEDURE IF EXISTS sp_add_participant_by_name ;        --TODO
 -- ****************************************************************************
 CREATE PROCEDURE sp_list_events()
 BEGIN
-    SELECT id, name
-    FROM events
-    ORDER BY id;
+    SELECT id, name, event_date
+    FROM event
+    ORDER BY event_date DESC ;
 END $$
 
 -- ****************************************************************************
@@ -36,7 +36,7 @@ CREATE PROCEDURE sp_create_event(
     IN p_event_date DATE
 )
 BEGIN
-    INSERT INTO events (name, event_date)
+    INSERT INTO event (name, event_date)
     VALUES (p_name, p_event_date);
 
     SELECT *
