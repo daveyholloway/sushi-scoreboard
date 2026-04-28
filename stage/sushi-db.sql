@@ -28,6 +28,12 @@ CREATE TABLE participant (
     tstamp_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add some sample participants
+INSERT INTO participant (name) VALUES
+('Tom') ,
+('Dick') ,
+('Harry') ;
+
 -- The event table, a row is created for every sushi event.
 CREATE TABLE event (
     id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
