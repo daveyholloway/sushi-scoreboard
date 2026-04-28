@@ -1,119 +1,129 @@
 -- Create database and user
-CREATE DATABASE sushi_tracker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE sushi_scoreboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE USER 'sushi_user'@'localhost' IDENTIFIED BY 'supersecretsushipa55worD';
-GRANT ALL PRIVILEGES ON sushi_tracker.* TO 'sushi_user'@'localhost';
+GRANT ALL PRIVILEGES ON sushi_scoreboard.* TO 'sushi_user'@'localhost';
 FLUSH PRIVILEGES;
 
-USE sushi_tracker;
+USE sushi_scoreboard ;
 
--- Participants (people)
-CREATE TABLE participants (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Drop the tables if they already exist
+DROP TABLE IF EXISTS event_plate_consumption ;
+DROP TABLE IF EXISTS event_menu_consumption ;
+
+DROP TABLE IF EXISTS event_participant ;
+DROP TABLE IF EXISTS event_plate ;
+DROP TABLE IF EXISTS event_menu_item ;
+
+DROP TABLE IF EXISTS participant ;
+DROP TABLE IF EXISTS event ;
+DROP TABLE IF EXISTS plate ;
+DROP TABLE IF EXISTS menu_item ;
+
+-- The participant table, holds a master list of all possible
+-- participants.
+CREATE TABLE participant (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL UNIQUE,
+    tstamp_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Sushi events (each visit)
-CREATE TABLE events (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    event_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- The event table, a row is created for every sushi event.
+CREATE TABLE event (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(150) NOT NULL,
+    event_date     DATE NOT NULL,
+    tstamp_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Which participants attended which event
-CREATE TABLE event_participants (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id INT UNSIGNED NOT NULL,
+-- Associate participants with an event, this gives us the many to many 
+-- relationship
+CREATE TABLE event_participant (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id       INT UNSIGNED NOT NULL,
     participant_id INT UNSIGNED NOT NULL,
     UNIQUE KEY uniq_event_participant (event_id, participant_id),
-    CONSTRAINT fk_ep_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_ep_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
+    CONSTRAINT fk_ep_event FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ep_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE
 );
 
--- Plate colours (standing data)
-CREATE TABLE plate_colours (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_order INT NOT NULL DEFAULT 0,
-    hex_colour CHAR(7) NULL, -- e.g. #FF00AA
-    active TINYINT(1) NOT NULL DEFAULT 1
+-- The list of coloured plates and default prices
+CREATE TABLE plate (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(50) NOT NULL UNIQUE,
+    hex_colour     CHAR(7) NULL, -- e.g. #FF00AA
+    price          DECIMAL(5,2) NOT NULL,
+    tstamp_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Per-event price for each plate colour
-CREATE TABLE event_plate_prices (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id INT UNSIGNED NOT NULL,
-    plate_colour_id INT UNSIGNED NOT NULL,
-    unit_price DECIMAL(8,2) NOT NULL,
-    UNIQUE KEY uniq_event_colour (event_id, plate_colour_id),
-    CONSTRAINT fk_epp_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_epp_colour FOREIGN KEY (plate_colour_id) REFERENCES plate_colours(id) ON DELETE RESTRICT
+-- Add some standing data for starters
+INSERT INTO plate (name, price, hex_colour) VALUES
+('Green'  , 3.50, '#00AA00'),
+('Blue'   , 4.50, '#0077CC'),
+('Purple' , 5.50, '#800080'),
+('Orange' , 6.00, '#FF8800'),
+('Pink'   , 6.50, '#FF66AA'),
+('Grey'   , 7.50, '#888888'),
+('Yellow' , 8.50, '#FFDD00');
+
+-- Plate prices may vary between events so list those here
+CREATE TABLE event_plate (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id       INT UNSIGNED NOT NULL,
+    plate_id       INT UNSIGNED NOT NULL,
+    price          DECIMAL(5,2) NOT NULL,
+    UNIQUE KEY uniq_event_plate (event_id, plate_id),
+    CONSTRAINT fk_epp_event FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE,
+    CONSTRAINT fk_epp_plate FOREIGN KEY (plate_id) REFERENCES plate(id) ON DELETE RESTRICT
 );
 
--- Menu items (white plates with individual prices)
-CREATE TABLE menu_items (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(150) NOT NULL UNIQUE,
-    default_price DECIMAL(8,2) NULL,
-    active TINYINT(1) NOT NULL DEFAULT 1
+-- Sometimes, regular menu items are also included so stick those here:
+CREATE TABLE menu_item (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(150) NOT NULL UNIQUE,
+    price          DECIMAL(5,2) NULL,
+    tstamp_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Per-event price override for menu items
-CREATE TABLE event_menu_prices (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id INT UNSIGNED NOT NULL,
-    menu_item_id INT UNSIGNED NOT NULL,
-    unit_price DECIMAL(8,2) NOT NULL,
-    UNIQUE KEY uniq_event_menu (event_id, menu_item_id),
-    CONSTRAINT fk_emp_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_emp_menu FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE RESTRICT
+-- Add some standing data for starters
+INSERT INTO menu_item (name, price) VALUES
+('Vegetable Goyoza'      , 6.95),
+('Chicken Goyoza'        , 7.50),
+('Chicken Katsu'         , 6.95);
+
+-- Menu prices may vary between events so list those here
+CREATE TABLE event_menu_item (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id       INT UNSIGNED NOT NULL,
+    menu_item_id   INT UNSIGNED NOT NULL,
+    price          DECIMAL(5,2) NOT NULL,
+    UNIQUE KEY uniq_event_menu_item (event_id, menu_item_id),
+    CONSTRAINT fk_emi_event FOREIGN KEY (event_id)     REFERENCES event(id) ON DELETE CASCADE,
+    CONSTRAINT fk_emi_menu  FOREIGN KEY (menu_item_id) REFERENCES menu_item(id) ON DELETE RESTRICT
 );
 
--- Consumption of coloured plates (aggregated counts)
-CREATE TABLE plate_consumption (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id INT UNSIGNED NOT NULL,
+-- Store consumption of coloured plates
+CREATE TABLE event_plate_consumption (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id       INT UNSIGNED NOT NULL,
     participant_id INT UNSIGNED NOT NULL,
-    plate_colour_id INT UNSIGNED NOT NULL,
-    quantity INT UNSIGNED NOT NULL DEFAULT 0,
-    UNIQUE KEY uniq_plate_row (event_id, participant_id, plate_colour_id),
-    CONSTRAINT fk_pc_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_colour FOREIGN KEY (plate_colour_id) REFERENCES plate_colours(id) ON DELETE RESTRICT
+    plate_id       INT UNSIGNED NOT NULL,
+    quantity       INT UNSIGNED NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_plate_row (event_id, participant_id, plate_id),
+    CONSTRAINT fk_pc_event       FOREIGN KEY (event_id)       REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_plate       FOREIGN KEY (plate_id)       REFERENCES plate(id) ON DELETE RESTRICT
 );
 
--- Consumption of menu items (aggregated counts)
-CREATE TABLE menu_consumption (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id INT UNSIGNED NOT NULL,
+-- Store consumption of menu items 
+CREATE TABLE event_menu_consumption (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id       INT UNSIGNED NOT NULL,
     participant_id INT UNSIGNED NOT NULL,
-    menu_item_id INT UNSIGNED NOT NULL,
-    quantity INT UNSIGNED NOT NULL DEFAULT 0,
+    menu_item_id   INT UNSIGNED NOT NULL,
+    quantity       INT UNSIGNED NOT NULL DEFAULT 0,
     UNIQUE KEY uniq_menu_row (event_id, participant_id, menu_item_id),
-    CONSTRAINT fk_mc_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mc_participant FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mc_menu FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE RESTRICT
+    CONSTRAINT fk_mc_event       FOREIGN KEY (event_id)       REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mc_menu        FOREIGN KEY (menu_item_id)   REFERENCES menu_item(id) ON DELETE RESTRICT
 );
-
--- Seed some standard plate colours (you can tweak names/order)
-INSERT INTO plate_colours (name, display_order, hex_colour) VALUES
-('Green', 10, '#00AA00'),
-('Blue', 20, '#0077CC'),
-('Purple', 30, '#800080'),
-('Orange', 40, '#FF8800'),
-('Pink', 50, '#FF66AA'),
-('Grey', 60, '#888888'),
-('Yellow', 70, '#FFDD00');
-
--- Optionally seed some menu items
-INSERT INTO menu_items (name, default_price) VALUES
-('Test Item 1', 1.00),
-('Test Item 2', 2.00),
-('test Item 3', 3.00);
-
-CREATE TABLE default_prices (id INT AUTO_INCREMENT PRIMARY KEY, plate_colour VARCHAR(50) NOT NULL, price DECIMAL(5,2) NOT NULL) ;
-
-INSERT INTO default_prices (plate_colour, price) VALUES ('Green',3.5), ('Blue',4.5),('Purple',5.5), ('Orange',6), ('Pink
-',6.5), ('Grey',7.5), ('Yellow',8.5);
