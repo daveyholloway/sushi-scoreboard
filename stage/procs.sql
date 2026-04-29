@@ -15,8 +15,15 @@ DROP PROCEDURE IF EXISTS sp_edit_participant ;
 
 DROP PROCEDURE IF EXISTS sp_list_plates ;
 
+DROP PROCEDURE IF EXISTS sp_list_menu_items ;
+DROP PROCEDURE IF EXISTS sp_create_menu_item ;
+
 DROP PROCEDURE IF EXISTS sp_add_participant_by_id;
 DROP PROCEDURE IF EXISTS sp_add_participant_by_name;
+
+DROP PROCEDURE IF EXISTS sp_list_event_participants ;
+DROP PROCEDURE IF EXISTS sp_add_event_participant_by_id ;
+DROP PROCEDURE IF EXISTS sp_remove_event_participant_by_id ;
 
 -- ****************************************************************************
 -- List Events
@@ -145,8 +152,37 @@ BEGIN
 END $$
 
 
+-- ****************************************************************************
+-- List all Menu Items
+-- ===================
+--
+-- Returns a result set of all the menu items in the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_list_menu_items()
+BEGIN
+    SELECT id, name, price
+    FROM menu_item
+    ORDER BY id ;
+END $$
 
+-- ****************************************************************************
+-- Create a new Menu Item  
+-- ======================
+--
+-- Adds a new menu item to the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_create_menu_item(
+    IN p_name   VARCHAR(150),
+    IN p_price  DECIMAL(5,2) 
+)
+BEGIN
+    INSERT INTO menu_item (name, price)
+    VALUES (p_name, p_price);
 
+    SELECT *
+    FROM menu_item 
+    WHERE id = LAST_INSERT_ID();
+END $$
 
 -- ****************************************************************************
 -- List Participants for a given Event
@@ -155,52 +191,86 @@ END $$
 -- Returns a result set of all the participants in the database for the
 -- given event.
 -- ****************************************************************************
-/*CREATE PROCEDURE sp_list_participants(
+CREATE PROCEDURE sp_list_event_participants(
     IN p_event_id   INT
 )
 BEGIN
     SELECT ep.event_id, 
            ep.participant_id,
            p.name
-    FROM event_participants    ep,
-         participants          p
+    FROM event_participant    ep,
+         participant          p
     WHERE ep.participant_id = p.id
     AND ep.event_id = p_event_id ;
 END $$
 
 -- ****************************************************************************
--- Add Participants for a given Event - By ID
+-- Add a participant to a given Event - By ID
 -- ==========================================
 --
--- Add an existing participant to an event using their participant ID. Will not
--- insert duplicates.
+-- Add an existing participant to an event using their participant ID. Checks  
+-- for duplicates and foreign key violations (e.g. adding a participant that
+-- doesn't exist).
 -- ****************************************************************************
-CREATE PROCEDURE sp_add_participant_by_id(
+CREATE PROCEDURE sp_add_event_participant_by_id(
     IN p_event_id INT,
     IN p_participant_id INT
 )
 BEGIN
-    DECLARE already_exists INT DEFAULT 0;
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok ,CONCAT(
+            'Participant ', p_participant_id,
+            ' is already attending event ', p_event_id, '.'
+        ) AS outcome;
+    END;
 
-    -- Check if the participant is already linked to the event
-    SELECT COUNT(*)
-    INTO already_exists
-    FROM event_participants
-    WHERE event_id = p_event_id
-      AND participant_id = p_participant_id;
+    DECLARE exit HANDLER FOR 1452
+    BEGIN
+        SELECT 0 as ok, CONCAT(
+            'Participant ', p_participant_id,
+            ' does not exist, cannot add to event ', p_event_id, '.'
+        ) AS outcome;
+    END;
 
-    IF already_exists = 0 THEN
-        INSERT INTO event_participants (event_id, participant_id)
-        VALUES (p_event_id, p_participant_id);
-    END IF;
+    -- Normal insert attempt
+    INSERT INTO event_participant (event_id, participant_id)
+    VALUES (p_event_id, p_participant_id);
 
-    -- Return the final state (idempotent)
-    SELECT *
-    FROM event_participants
-    WHERE event_id = p_event_id
-      AND participant_id = p_participant_id;
+    -- If we reach here, the insert succeeded
+    SELECT 1 AS ok, CONCAT(
+        'Participant ', p_participant_id,
+        ' added to event ', p_event_id, '.'
+    ) AS outcome;
+END;
+$$
+
+-- ****************************************************************************
+-- Remove a participant from a given Event - By ID
+-- ===============================================
+--
+-- Remove a participant from a given event, use the event id and the
+-- participant id..
+-- ****************************************************************************
+CREATE PROCEDURE sp_remove_event_participant_by_id(
+    IN p_event_id INT,
+    IN p_participant_id INT
+)
+BEGIN
+
+    DELETE FROM event_participant
+     WHERE event_id       = p_event_id
+       AND participant_id = p_participant_id ;
+
+    -- Return a status message indicating the outcome
+    IF ROW_COUNT() = 0 THEN
+	SELECT CONCAT('No participant ', p_participant_id, ' attending event ', p_event_id, '.') AS outcome ;
+    ELSE
+	SELECT CONCAT('Participant ', p_participant_id, ' removed from event ', p_event_id, '.') AS outcome ;
+    END IF ;
 END
  $$
+/*
 
 -- ****************************************************************************
 -- Add Participants for a given Event - By Name
