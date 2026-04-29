@@ -118,7 +118,7 @@ CREATE TABLE event_plate_consumption (
     UNIQUE KEY uniq_plate_row (event_id, participant_id, plate_id),
     CONSTRAINT fk_pc_event       FOREIGN KEY (event_id)       REFERENCES event(id) ON DELETE CASCADE,
     CONSTRAINT fk_pc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_plate       FOREIGN KEY (plate_id)       REFERENCES plate(id) ON DELETE RESTRICT
+    CONSTRAINT fk_pc_plate       FOREIGN KEY (plate_id)       REFERENCES event_plate(id) ON DELETE RESTRICT
 );
 
 -- Store consumption of menu items 
@@ -131,5 +131,5 @@ CREATE TABLE event_menu_consumption (
     UNIQUE KEY uniq_menu_row (event_id, participant_id, menu_item_id),
     CONSTRAINT fk_mc_event       FOREIGN KEY (event_id)       REFERENCES event(id) ON DELETE CASCADE,
     CONSTRAINT fk_mc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mc_menu        FOREIGN KEY (menu_item_id)   REFERENCES menu_item(id) ON DELETE RESTRICT
+    CONSTRAINT fk_mc_menu        FOREIGN KEY (menu_item_id)   REFERENCES event_menu_item(id) ON DELETE RESTRICT
 );

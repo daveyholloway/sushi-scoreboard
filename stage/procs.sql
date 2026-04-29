@@ -25,67 +25,17 @@ DROP PROCEDURE IF EXISTS sp_list_event_participants ;
 DROP PROCEDURE IF EXISTS sp_add_event_participant_by_id ;
 DROP PROCEDURE IF EXISTS sp_remove_event_participant_by_id ;
 
--- ****************************************************************************
--- List Events
--- ===========
---
--- Returns a result set of all the events in the database.
--- ****************************************************************************
-CREATE PROCEDURE sp_list_events()
-BEGIN
-    SELECT id, name, event_date
-    FROM event
-    ORDER BY event_date DESC ;
-END $$
-
--- ****************************************************************************
--- Create an Event
--- ===============
---
--- Adds a new even with the given name and date, returns a result set
--- containing the new row data.
--- ****************************************************************************
-CREATE PROCEDURE sp_create_event(
-    IN p_name VARCHAR(150),
-    IN p_event_date DATE
-)
-BEGIN
-    INSERT INTO event (name, event_date)
-    VALUES (p_name, p_event_date);
-
-    SELECT *
-    FROM event
-    WHERE id = LAST_INSERT_ID();
-END $$
-
--- ****************************************************************************
--- Delete an event
--- ===============
---
--- Pass in an event ID and delete the corresponding event. Only allow if there
--- are no associated participants or other activity recorded against the event.
--- ****************************************************************************
--- TODO
-
--- ****************************************************************************
--- Edit an event
--- =============
---
--- Pass in an event ID and update the description to the value provided.
--- ****************************************************************************
-CREATE PROCEDURE sp_edit_event(
-    IN p_event_id   INT(10),
-    IN p_name       VARCHAR(150)
-)
-BEGIN
-    UPDATE event
-       SET name = p_name
-     WHERE id = p_event_id ;
-
-    SELECT *
-    FROM event
-    WHERE id = p_event_id ;
-END $$
+-- ############################################################################
+-- Stored procedures related to:
+-- █████                 ██      ██            ██                         ██
+-- ██  ██                ██                                               ██
+-- ██  ██  ████  ██ ██  █████   ███    ████   ███   █████   ████  █████  █████
+-- █████      ██ ███ ██  ██      ██   ██  ██   ██   ██  ██     ██ ██  ██  ██
+-- ██      █████ ██      ██      ██   ██       ██   ██  ██  █████ ██  ██  ██
+-- ██     ██  ██ ██      ██      ██   ██  ██   ██   █████  ██  ██ ██  ██  ██
+-- ██      █████ ██       ███   ████   ████   ████  ██      █████ ██  ██   ███
+--                                                  ██
+-- ############################################################################
 
 -- ****************************************************************************
 -- List all currently recorded participants
@@ -110,12 +60,21 @@ CREATE PROCEDURE sp_create_participant(
     IN p_name VARCHAR(100)
 )
 BEGIN
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok, CONCAT(
+            'Participant "', p_name,
+            '" already exists.'
+        ) AS outcome;
+    END;
+
     INSERT INTO participant (name)
     VALUES (p_name);
 
-    SELECT *
-    FROM participant 
-    WHERE id = LAST_INSERT_ID();
+    SELECT 1 AS ok, CONCAT(
+        'Participant "', p_name,
+        '" created successfully.'
+    ) AS outcome;
 END $$
 
 -- ****************************************************************************
@@ -129,14 +88,41 @@ CREATE PROCEDURE sp_edit_participant(
     IN p_name             VARCHAR(100)
 )
 BEGIN
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok, CONCAT(
+            'Participant "', p_name,
+            '" already exists.'
+        ) AS outcome;
+    END;
+
     UPDATE participant
        SET name = p_name
      WHERE id = p_participant_id ;
 
-    SELECT *
-    FROM participant
-    WHERE id = p_participant_id ;
+    IF ROW_COUNT() = 0 THEN
+        SELECT 0 AS ok, CONCAT(
+            'Participant ', p_participant_id,
+            ' does not exist.'
+        ) AS outcome;
+    ELSE
+        SELECT 1 AS ok, CONCAT(
+            'Participant ', p_participant_id,
+            ' updated successfully.'
+        ) AS outcome;
+    END IF;
 END $$
+
+-- ############################################################################
+-- Stored procedures related to:
+-- █████   ███           ██
+-- ██  ██   ██           ██
+-- ██  ██   ██    ████  █████   ████
+-- █████    ██       ██  ██    ██  ██
+-- ██       ██    █████  ██    ██████
+-- ██       ██   ██  ██  ██    ██
+-- ██      ████   █████   ███   ████
+-- ############################################################################
 
 -- ****************************************************************************
 -- List all Plates
@@ -151,6 +137,16 @@ BEGIN
     ORDER BY id ;
 END $$
 
+-- ############################################################################
+-- Stored procedures related to:
+-- ██   █                             ██████  ██
+-- ███ ██                               ██    ██
+-- ██████  ████  █████  ██  ██          ██   █████   ████   ██ ██
+-- ██ █ █ ██  ██ ██  ██ ██  ██          ██    ██    ██  ██ ██████
+-- ██ █ █ ██████ ██  ██ ██  ██          ██    ██    ██████ ██ █ █
+-- ██   █ ██     ██  ██ ██  ██          ██    ██    ██     ██ █ █
+-- ██   █  ████  ██  ██  █████        ██████   ███   ████  ██   █
+-- ############################################################################
 
 -- ****************************************************************************
 -- List all Menu Items
@@ -176,12 +172,120 @@ CREATE PROCEDURE sp_create_menu_item(
     IN p_price  DECIMAL(5,2) 
 )
 BEGIN
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok, CONCAT(
+            'Menu item "', p_name,
+            '" already exists.'
+        ) AS outcome;
+    END;
+
     INSERT INTO menu_item (name, price)
     VALUES (p_name, p_price);
 
-    SELECT *
-    FROM menu_item 
-    WHERE id = LAST_INSERT_ID();
+    SELECT 1 AS ok, CONCAT(
+        'Menu item "', p_name,
+        '" created successfully.'
+    ) AS outcome;
+END $$
+
+-- ############################################################################
+-- Stored procedures related to:
+-- ██████                       ██
+-- ██                           ██
+-- ██     ██  ██  ████  █████  █████
+-- █████  ██  ██ ██  ██ ██  ██  ██
+-- ██     ██  ██ ██████ ██  ██  ██
+-- ██      ████  ██     ██  ██  ██
+-- ██████   ██    ████  ██  ██   ███
+-- ############################################################################
+
+-- ****************************************************************************
+-- List Events
+-- ===========
+--
+-- Returns a result set of all the events in the database.
+-- ****************************************************************************
+CREATE PROCEDURE sp_list_events()
+BEGIN
+    SELECT id, name, event_date
+    FROM event
+    ORDER BY event_date DESC ;
+END $$
+
+-- ****************************************************************************
+-- Create an Event
+-- ===============
+--
+-- Adds a new even with the given name and date, returns a result set
+-- containing a success flag and status message.
+-- ****************************************************************************
+CREATE PROCEDURE sp_create_event(
+    IN p_name VARCHAR(150),
+    IN p_event_date DATE
+)
+BEGIN
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok, CONCAT(
+            'Event with name "', p_name,
+            '" already exists.'
+        ) AS outcome;
+    END;
+
+    INSERT INTO event (name, event_date)
+    VALUES (p_name, p_event_date);
+
+    SELECT 1 AS ok, CONCAT(
+        'Event "', p_name,
+        '" created successfully.'
+    ) AS outcome;
+END $$
+
+-- ****************************************************************************
+-- Delete an event
+-- ===============
+--
+-- Pass in an event ID and delete the corresponding event. Only allow if there
+-- are no associated participants or other activity recorded against the event.
+-- ****************************************************************************
+-- TODO
+
+-- ****************************************************************************
+-- Edit an event
+-- =============
+--
+-- Pass in an event ID and update the description to the value provided.
+-- Returns a result set containing a success flag and status message.
+-- ****************************************************************************
+CREATE PROCEDURE sp_edit_event(
+    IN p_event_id   INT(10),
+    IN p_name       VARCHAR(150)
+)
+BEGIN
+    DECLARE exit HANDLER FOR 1062
+    BEGIN
+        SELECT 0 AS ok, CONCAT(
+            'Event with name "', p_name,
+            '" already exists.'
+        ) AS outcome;
+    END;
+
+    UPDATE event
+       SET name = p_name
+     WHERE id = p_event_id ;
+
+    IF ROW_COUNT() = 0 THEN
+        SELECT 0 AS ok, CONCAT(
+            'Event ', p_event_id,
+            ' does not exist.'
+        ) AS outcome;
+    ELSE
+        SELECT 1 AS ok, CONCAT(
+            'Event ', p_event_id,
+            ' updated successfully.'
+        ) AS outcome;
+    END IF;
 END $$
 
 -- ****************************************************************************
@@ -264,12 +368,20 @@ BEGIN
 
     -- Return a status message indicating the outcome
     IF ROW_COUNT() = 0 THEN
-	SELECT CONCAT('No participant ', p_participant_id, ' attending event ', p_event_id, '.') AS outcome ;
+        SELECT 0 AS ok, CONCAT(
+            'No participant ', p_participant_id,
+            ' attending event ', p_event_id, '.'
+        ) AS outcome;
     ELSE
-	SELECT CONCAT('Participant ', p_participant_id, ' removed from event ', p_event_id, '.') AS outcome ;
-    END IF ;
-END
- $$
+        SELECT 1 AS ok, CONCAT(
+            'Participant ', p_participant_id,
+            ' removed from event ', p_event_id, '.'
+        ) AS outcome;
+    END IF;
+END $$
+
+
+
 /*
 
 -- ****************************************************************************
