@@ -221,27 +221,30 @@ END $$
 --
 -- Adds a new even with the given name and date, returns a result set
 -- containing a success flag and status message.
+-- New event id is returned via an OUT parameter.
 -- ****************************************************************************
 CREATE PROCEDURE sp_create_event(
     IN p_name VARCHAR(150),
-    IN p_event_date DATE
+    IN p_event_date DATE,
+    OUT p_event_id INT
 )
 BEGIN
     DECLARE exit HANDLER FOR 1062
     BEGIN
-        SELECT 0 AS ok, CONCAT(
-            'Event with name "', p_name,
-            '" already exists.'
-        ) AS outcome;
+        SET p_event_id = NULL;
+        SELECT 0 AS ok,
+               CONCAT('Event with name "', p_name, '" already exists.') AS outcome,
+               NULL AS event_id;
     END;
 
     INSERT INTO event (name, event_date)
     VALUES (p_name, p_event_date);
 
-    SELECT 1 AS ok, CONCAT(
-        'Event "', p_name,
-        '" created successfully.'
-    ) AS outcome;
+    SET p_event_id = LAST_INSERT_ID();
+
+    SELECT 1 AS ok,
+           CONCAT('Event "', p_name, '" created successfully.') AS outcome,
+           p_event_id AS event_id;
 END $$
 
 -- ****************************************************************************
