@@ -25,6 +25,8 @@ DROP PROCEDURE IF EXISTS sp_list_event_participants ;
 DROP PROCEDURE IF EXISTS sp_add_event_participant_by_id ;
 DROP PROCEDURE IF EXISTS sp_remove_event_participant_by_id ;
 
+DROP PROCEDURE IF EXISTS sp_update_event_participant_plate_count ;
+
 -- ############################################################################
 -- Stored procedures related to:
 -- █████                 ██      ██            ██                         ██
@@ -478,5 +480,88 @@ BEGIN
 END$$
 
 */
+
+-- ****************************************************************************
+-- Update a plate count for a given participant at a given event
+-- =============================================================
+--
+-- Pass in the event id, event participant id and event plate id with the 
+-- quantity to adjust by (expected to be +1 or -1). Check for an existing row,
+-- if one is found then update the quantity by the specified amount.
+--
+-- If no existing row is found, return an ok code of 0 and an appropriate
+-- status message.
+--
+-- If the adjustment value is not +1 or -1, return an ok code of 0 and an
+-- appropriate status message.
+-- ****************************************************************************
+CREATE PROCEDURE sp_update_event_participant_plate_count(
+    IN p_event_id INT,
+    IN p_event_participant_id INT,
+    IN p_event_plate_id INT,
+    IN p_adjustment INT
+)
+BEGIN
+    DECLARE existing_qty INT DEFAULT 0;
+    
+    -- Validate that adjustment is either +1 or -1
+    IF p_adjustment NOT IN (1, -1) THEN
+        SELECT 0 AS ok, CONCAT(
+            'Invalid adjustment value: ',
+            p_adjustment,
+            '. Must be +1 or -1.'
+        ) AS outcome;
+    ELSE
+        -- Try to update the existing record
+        UPDATE event_plate_consumption
+           SET quantity = quantity + p_adjustment
+         WHERE event_id = p_event_id
+           AND participant_id = p_event_participant_id
+           AND plate_id = p_event_plate_id;
+        
+        -- Check if any row was updated
+        IF ROW_COUNT() > 0 THEN
+            -- Re-select the updated quantity to check if it went negative
+            SELECT quantity INTO existing_qty
+            FROM event_plate_consumption
+            WHERE event_id = p_event_id
+              AND participant_id = p_event_participant_id
+              AND plate_id = p_event_plate_id;
+            
+            -- Check the result - if quantity went negative, rollback and report error
+            IF existing_qty < 0 THEN
+                UPDATE event_plate_consumption
+                   SET quantity = 0
+                 WHERE event_id = p_event_id
+                   AND participant_id = p_event_participant_id
+                   AND plate_id = p_event_plate_id;
+                
+                SELECT 0 AS ok, CONCAT(
+                    'Cannot decrease plate count below zero.'
+                ) AS outcome;
+            ELSE
+                SELECT 1 AS ok, CONCAT(
+                    'Plate count updated successfully.'
+                ) AS outcome;
+            END IF;
+        ELSE
+            -- No existing record, this is an error condition. When the event 
+            -- was created, a plate count for each plate was initialised to 
+            -- zero for each participant, so if we don't find a record here
+            -- it means something has gone wrong.
+            
+            SELECT 0 AS ok, CONCAT(
+                'Unexpected error: No row found for participant ',
+                p_event_participant_id,
+                ' at event ',
+                p_event_id,
+                ' with plate ', 
+                p_event_plate_id,
+                '.'
+            ) AS outcome;
+            
+        END IF;
+    END IF;
+END $$
 
 DELIMITER ;
