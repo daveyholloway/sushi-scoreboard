@@ -1,3 +1,7 @@
+-- TODO
+-- In the consumption tables, menu_item_id and plate_id should be 
+-- event_menu_item_id and event_plate_id
+
 -- Create database and user
 CREATE DATABASE sushi_scoreboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

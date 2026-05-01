@@ -2,6 +2,7 @@ USE sushi_scoreboard;
 -- TODO -----------------------------------------------------------------------
 -- 
 -- Amend event plate and menu item prices
+-- Consitent naming "menu_item_consumption" not "menu_consumption" - or did I dream it!
 -- 
 -------------------------------------------------------------------------------
 DELIMITER $$
@@ -268,12 +269,24 @@ CREATE PROCEDURE sp_event_setup_menu_items(
     IN p_event_id INT
 )
 BEGIN
+    -- Create the event menu items, specific to this event
     INSERT INTO event_menu_item (event_id, menu_item_id, price)
     SELECT 
         p_event_id,
         mi.id,
         mi.price
     FROM menu_item AS mi;
+
+    -- Create fresh menu consumption totals for each participant for this event
+    INSERT INTO event_menu_consumption (event_id, participant_id, menu_item_id, quantity)
+    SELECT p_event_id,  
+           ep.participant_id, 
+           em.id, 
+           0
+    FROM event_participant     AS ep,
+         event_menu_item       AS em
+    WHERE ep.event_id = p_event_id
+      AND em.event_id = p_event_id ;
 
     SELECT 
         ROW_COUNT() AS rows_inserted,
@@ -298,6 +311,17 @@ BEGIN
         p.id,
         p.price
     FROM plate AS p;
+
+    -- Create fresh plate consumption totals for each participant for this event
+    INSERT INTO event_plate_consumption (event_id, participant_id, plate_id, quantity)
+    SELECT p_event_id,  
+           ep.participant_id, 
+           epl.id, 
+           0
+    FROM event_participant     AS ep,
+         event_plate           AS epl
+    WHERE ep.event_id  = p_event_id
+      AND epl.event_id = p_event_id ;
 
     SELECT 
         ROW_COUNT() AS rows_inserted,
@@ -656,7 +680,7 @@ BEGIN
         ) AS outcome;
     ELSE
         -- Try to update the existing record
-        UPDATE event_menu_item_consumption
+        UPDATE event_menu_consumption
            SET quantity = quantity + p_adjustment
          WHERE event_id = p_event_id
            AND participant_id = p_event_participant_id
@@ -666,14 +690,14 @@ BEGIN
         IF ROW_COUNT() > 0 THEN
             -- Re-select the updated quantity to check if it went negative
             SELECT quantity INTO existing_qty
-            FROM event_plate_consumption
+            FROM event_menu_consumption
             WHERE event_id = p_event_id
               AND participant_id = p_event_participant_id
               AND menu_item_id = p_event_menu_item_id;
             
             -- Check the result - if quantity went negative, rollback and report error
             IF existing_qty < 0 THEN
-                UPDATE event_plate_consumption
+                UPDATE event_menu_consumption
                    SET quantity = 0
                  WHERE event_id = p_event_id
                    AND participant_id = p_event_participant_id
@@ -707,7 +731,18 @@ BEGIN
     END IF;
 END $$
 
-
+-- ############################################################################
+-- Stored procedures related to:
+-- ████          ██
+-- ██ ██         ██
+-- ██  ██  ████  █████  ██  ██  █████
+-- ██  ██ ██  ██ ██  ██ ██  ██ ██  ██
+-- ██  ██ ██████ ██  ██ ██  ██ ██  ██
+-- ██ ██  ██     ██  ██ ██  ██  █████
+-- ████    ████  █████   █████     ██
+--                              ████
+--
+-- ############################################################################
 
 -- ****************************************************************************
 -- Produce a summary for a given event
