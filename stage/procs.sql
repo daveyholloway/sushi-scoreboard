@@ -1,5 +1,9 @@
 USE sushi_scoreboard;
-
+-- TODO -----------------------------------------------------------------------
+-- 
+-- Amend event plate and menu item prices
+-- 
+-------------------------------------------------------------------------------
 DELIMITER $$
 
 -- Drop everything first (if it exists)
@@ -30,6 +34,8 @@ DROP PROCEDURE IF EXISTS sp_event_setup_plates ;
 
 DROP PROCEDURE IF EXISTS sp_update_event_participant_plate_count ;
 DROP PROCEDURE IF EXISTS sp_update_event_participant_menu_item_count ;
+
+DROP PROCEDURE IF EXISTS sp_get_event_summary ;
 
 -- ############################################################################
 -- Stored procedures related to:
@@ -701,5 +707,65 @@ BEGIN
     END IF;
 END $$
 
+
+
+-- ****************************************************************************
+-- Produce a summary for a given event
+-- ===================================
+--
+-- Used for debugging / development.
+-- ****************************************************************************
+CREATE PROCEDURE sp_get_event_summary(IN in_event_id INT UNSIGNED)
+BEGIN
+    DECLARE v_event_name VARCHAR(150);
+    DECLARE v_event_date DATE;
+
+    -- Fetch event metadata
+    SELECT name, event_date
+    INTO v_event_name, v_event_date
+    FROM event
+    WHERE id = in_event_id;
+
+    -- Participants list
+    SELECT GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR '\n') INTO @participants
+    FROM event_participant ep
+    JOIN participant p ON ep.participant_id = p.id
+    WHERE ep.event_id = in_event_id;
+
+    -- Plates list (event-specific prices)
+    SELECT GROUP_CONCAT(CONCAT(pl.name, ' ', FORMAT(ep.price, 2))
+                        ORDER BY pl.name SEPARATOR '\n')
+    INTO @plates
+    FROM event_plate ep
+    JOIN plate pl ON ep.plate_id = pl.id
+    WHERE ep.event_id = in_event_id;
+
+    -- Menu items list (event-specific prices)
+    SELECT GROUP_CONCAT(CONCAT(mi.name, ' ', FORMAT(emi.price, 2))
+                        ORDER BY mi.name SEPARATOR '\n')
+    INTO @menu_items
+    FROM event_menu_item emi
+    JOIN menu_item mi ON emi.menu_item_id = mi.id
+    WHERE emi.event_id = in_event_id;
+
+    -- Build final summary text
+    SELECT CONCAT(
+        'Event ', in_event_id, ' ', v_event_name, '\n',
+        '==================', '\n\n',
+
+        'Participants', '\n',
+        '=========', '\n',
+        IFNULL(@participants, '(none)'), '\n\n',
+
+        'Plates', '\n',
+        '=====', '\n',
+        IFNULL(@plates, '(none)'), '\n\n',
+
+        'Menu Items', '\n',
+        '=========', '\n',
+        IFNULL(@menu_items, '(none)'), '\n'
+    ) AS summary;
+
+END$$
 
 DELIMITER ;
