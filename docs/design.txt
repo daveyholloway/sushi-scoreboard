@@ -1,0 +1,39 @@
+Standing Data Workflows (Simple CRUD)
+=====================================
+
+Add Participant (name) return id
+Edit Participant (id, name)
+Delete Participant (id)
+Get Participant (id)
+Find Participant (name) return id
+List Participants ()
+
+Add Plate (name, colour, price) return id
+Edit Plate (id, name, colour, price)
+Delete Plate (id)
+Get Plate (id)
+List Plates ()
+
+Add Menu Item (name, price) return id
+Edit Menu Item (id, name, price)
+Delete Menu Item (id)
+Get Menu Item (id)
+List Menu Items ()
+
+More Complex
+============
+Create Event (name date) return id
+   Create an event item
+   Add attendees           - populate event_participant
+   Add plates              - populate event_plate
+   Add menu items          - populate event_menu_item
+
+
+Edit Event (id, name, date)
+==========
+
+Delete Event (id)
+============
+
+
+
