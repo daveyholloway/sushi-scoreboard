@@ -12,14 +12,35 @@ function json_error($msg, $code = 400) {
     exit;
 }
 
+function call_sp(PDO $pdo, string $procedure, array $params = []): PDOStatement {
+    $placeholders = implode(', ', array_fill(0, count($params), '?'));
+    $stmt = $pdo->prepare("CALL {$procedure}({$placeholders})");
+    $stmt->execute(array_values($params));
+    return $stmt;
+}
+
+function fetch_sp_all(PDO $pdo, string $procedure, array $params = []): array {
+    $stmt = call_sp($pdo, $procedure, $params);
+    $rows = $stmt->fetchAll();
+    while ($stmt->nextRowset()) {}
+    return $rows;
+}
+
+function fetch_sp_one(PDO $pdo, string $procedure, array $params = []): array {
+    $stmt = call_sp($pdo, $procedure, $params);
+    $row = $stmt->fetch() ?: [];
+    while ($stmt->nextRowset()) {}
+    return $row;
+}
+
 $input = json_decode(file_get_contents('php://input'), true);
 if (!is_array($input)) $input = [];
 
 switch ($action) {
     // List Events
     case 'list_events':
-        $stmt = $pdo->query("SELECT id, name, event_date FROM events ORDER BY event_date DESC, id DESC");
-        echo json_encode(['ok' => true, 'events' => $stmt->fetchAll()]);
+        $events = fetch_sp_all($pdo, 'sp_list_events');
+        echo json_encode(['ok' => true, 'events' => $events]);
         break;
 
     // Create Events
@@ -27,24 +48,33 @@ switch ($action) {
         $name = trim($input['name'] ?? '');
         $date = trim($input['event_date'] ?? '');
         if ($name === '' || $date === '') json_error('Missing name or date');
-        $stmt = $pdo->prepare("INSERT INTO events (name, event_date) VALUES (?, ?)");
+
+        $stmt = $pdo->prepare('CALL sp_create_event(?, ?, @p_event_id)');
         $stmt->execute([$name, $date]);
-        echo json_encode(['ok' => true, 'event_id' => $pdo->lastInsertId()]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        while ($stmt->nextRowset()) {}
+
+        if (empty($result) || !isset($result['ok']) || (int)$result['ok'] !== 1) {
+            json_error($result['outcome'] ?? 'Failed to create event', 500);
+        }
+
+        echo json_encode(['ok' => true, 'event_id' => (int)$result['event_id']]);
         break;
 
     // List Participants
     case 'list_participants':
-        $stmt = $pdo->query("SELECT id, name FROM participants ORDER BY name");
-        echo json_encode(['ok' => true, 'participants' => $stmt->fetchAll()]);
+        $participants = fetch_sp_all($pdo, 'sp_list_participants');
+        echo json_encode(['ok' => true, 'participants' => $participants]);
         break;
 
-    // Set Particiipants for an Event
+    // Set Participants for an Event
     case 'set_event_participants':
         $event_id = (int)($input['event_id'] ?? 0);
         $existing_ids = $input['participant_ids'] ?? [];
         $new_names = $input['new_names'] ?? [];
         if ($event_id <= 0) json_error('Invalid event');
 
+        // TODO: migrate participant add/remove logic to stored procedures
         $pdo->beginTransaction();
         try {
             $created_ids = [];
@@ -80,15 +110,8 @@ switch ($action) {
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
 
-        $stmt = $pdo->prepare("
-            SELECT p.id, p.name
-            FROM event_participants ep
-            JOIN participants p ON p.id = ep.participant_id
-            WHERE ep.event_id = ?
-            ORDER BY p.name
-        ");
-        $stmt->execute([$event_id]);
-        $participants = $stmt->fetchAll();
+        // TODO: migrate the remaining setup data loading to stored procedures
+        $participants = fetch_sp_all($pdo, 'sp_list_event_participants', [$event_id]);
 
         $stmt = $pdo->query("
             SELECT pc.id, pc.name, pc.display_order, pc.hex_colour, pc.active
@@ -140,6 +163,7 @@ switch ($action) {
 
     // Save Prices
     case 'save_prices':
+        // TODO: migrate save_prices to a stored procedure
         $event_id = (int)($input['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
         $colour_prices = $input['colour_prices'] ?? [];
@@ -185,6 +209,7 @@ switch ($action) {
 
     // Increment a plate for a given user at a given event.
     case 'increment_plate':
+        // TODO: migrate increment_plate to sp_update_event_participant_plate_count
         $event_id = (int)($input['event_id'] ?? 0);
         $participant_id = (int)($input['participant_id'] ?? 0);
         $plate_colour_id = (int)($input['plate_colour_id'] ?? 0);
@@ -215,6 +240,7 @@ switch ($action) {
 
     // Increment a menu item for a given user at a given event.
     case 'increment_menu':
+        // TODO: migrate increment_menu to sp_update_event_participant_menu_item_count
         $event_id = (int)($input['event_id'] ?? 0);
         $participant_id = (int)($input['participant_id'] ?? 0);
         $menu_item_id = (int)($input['menu_item_id'] ?? 0);
@@ -245,6 +271,7 @@ switch ($action) {
 
     // Get the totals for a given event.
     case 'get_totals':
+        // TODO: migrate totals aggregation to a stored procedure
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
 
@@ -283,6 +310,7 @@ switch ($action) {
 
     // Get Grid data - whatever that is!?
     case 'get_grid_data':
+        // TODO: migrate grid data retrieval to a stored procedure
         $event_id = (int)($_GET['event_id'] ?? 0);
         if ($event_id <= 0) json_error('Invalid event');
 
