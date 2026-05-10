@@ -3,25 +3,26 @@ Standing Data Workflows (Simple CRUD)
 
 Add Participant (name) return id
 Edit Participant (id, name)
-Delete Participant (id)
+Delete Participant (id) - Cascade delete ?
 Get Participant (id)
 Find Participant (name) return id
 List Participants ()
 
 Add Plate (name, colour, price) return id
 Edit Plate (id, name, colour, price)
-Delete Plate (id)
+Delete Plate (id) - Cascade delete ?
 Get Plate (id)
 List Plates ()
 
 Add Menu Item (name, price) return id
 Edit Menu Item (id, name, price)
-Delete Menu Item (id)
+Delete Menu Item (id) - Cascade delete ?
 Get Menu Item (id)
 List Menu Items ()
 
-More Complex
+More Complex (Events)
 ============
+
 Create Event (name date) return id
    Create an event item
    Add attendees           - populate event_participant
@@ -31,9 +32,17 @@ Create Event (name date) return id
 
 Edit Event (id, name, date)
 ==========
+Change name, change date, add/remove attendees, add/remove plates and menu items.
 
 Delete Event (id)
 ============
+Delete enent, event participants, event plates and event menu items
 
+More Complex (Consumption)
+============
 
+Add a plate for a given event and event participant
+Remove a plate for a given event and event participant
 
+Add a menu item for a given event and event participant
+Remove a menu item for a given event and event participant
