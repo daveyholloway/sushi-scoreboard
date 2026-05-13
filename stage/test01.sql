@@ -1,10 +1,12 @@
 -- Test script for sushi_scoreboard database
--- This script will test the stored procedures and functions defined in the sushi_scoreboard database.
+-- This script creates an event, assigns some users and creates plate and menu lists for the event.
 --
 use sushi_scoreboard ;
 
 -- Delete all events and associated data
-delete from events ;
+delete from event_menu_consumption ;
+delete from event_plate_consumption ;
+delete from event ;
 
 -- List current events - should be none
 call sp_list_events() ;
@@ -47,5 +49,10 @@ SELECT CONCAT(p.name, " (", ep.id, ") is attending event ", ep.event_id) AS mess
    FROM event_menu_item em
    JOIN menu_item mi ON em.menu_item_id = mi.id
   WHERE em.event_id = @new_event_id ;
+
+
+
+
+
 
 

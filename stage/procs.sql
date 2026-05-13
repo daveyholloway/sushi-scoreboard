@@ -369,6 +369,7 @@ CREATE PROCEDURE sp_list_event_participants(
 BEGIN
     SELECT ep.event_id, 
            ep.participant_id,
+           ep.id as event_participant_id,
            p.name
     FROM event_participant    ep,
          participant          p
@@ -823,19 +824,19 @@ END$$
 -- ****************************************************************************
 CREATE PROCEDURE debug_set_plate_consumption(
     IN p_event_id INT,
-    IN p_participant_id INT,
-    IN p_plate_id INT,
+    IN p_event_participant_id INT,
+    IN p_event_plate_id INT,
     IN p_quantity INT
 )
 BEGIN
-    INSERT INTO event_plate_consumption (event_id, participant_id, plate_id, quantity)
-    VALUES (p_event_id, p_participant_id, p_plate_id, p_quantity)
+    INSERT INTO event_plate_consumption (event_id, event_participant_id, event_plate_id, quantity)
+    VALUES (p_event_id, p_event_participant_id, p_event_plate_id, p_quantity)
     ON DUPLICATE KEY UPDATE quantity = p_quantity;
 
     SELECT 1 AS ok, CONCAT(
         'Plate consumption set for event ', p_event_id,
-        ', participant ', p_participant_id,
-        ', plate ', p_plate_id,
+        ', participant ', p_event_participant_id,
+        ', plate ', p_event_plate_id,
         ' to ', p_quantity, '.'
     ) AS outcome;
 END $$
@@ -849,19 +850,19 @@ END $$
 -- ****************************************************************************
 CREATE PROCEDURE debug_set_menu_consumption(
     IN p_event_id INT,
-    IN p_participant_id INT,
-    IN p_menu_item_id INT,
+    IN p_event_participant_id INT,
+    IN p_event_menu_item_id INT,
     IN p_quantity INT
 )
 BEGIN
-    INSERT INTO event_menu_consumption (event_id, participant_id, menu_item_id, quantity)
-    VALUES (p_event_id, p_participant_id, p_menu_item_id, p_quantity)
+    INSERT INTO event_menu_consumption (event_id, event_participant_id, event_menu_item_id, quantity)
+    VALUES (p_event_id, p_event_participant_id, p_event_menu_item_id, p_quantity)
     ON DUPLICATE KEY UPDATE quantity = p_quantity;
 
     SELECT 1 AS ok, CONCAT(
         'Menu item consumption set for event ', p_event_id,
-        ', participant ', p_participant_id,
-        ', menu item ', p_menu_item_id,
+        ', participant ', p_event_participant_id,
+        ', menu item ', p_event_menu_item_id,
         ' to ', p_quantity, '.'
     ) AS outcome;
 END $$
