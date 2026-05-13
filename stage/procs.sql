@@ -38,6 +38,10 @@ DROP PROCEDURE IF EXISTS sp_update_event_participant_menu_item_count ;
 
 DROP PROCEDURE IF EXISTS sp_get_event_summary ;
 
+DROP PROCEDURE IF EXISTS debug_set_plate_consumption ;
+
+DROP PROCEDURE IF EXISTS debug_set_menu_consumption ;
+
 -- ############################################################################
 -- Stored procedures related to:
 -- █████                 ██      ██            ██                         ██
@@ -277,17 +281,6 @@ BEGIN
         mi.price
     FROM menu_item AS mi;
 
-    -- Create fresh menu consumption totals for each participant for this event
-    INSERT INTO event_menu_consumption (event_id, participant_id, menu_item_id, quantity)
-    SELECT p_event_id,  
-           ep.participant_id, 
-           em.id, 
-           0
-    FROM event_participant     AS ep,
-         event_menu_item       AS em
-    WHERE ep.event_id = p_event_id
-      AND em.event_id = p_event_id ;
-
     SELECT 
         ROW_COUNT() AS rows_inserted,
         CONCAT('Menu items copied for event ', p_event_id) AS outcome;
@@ -311,17 +304,6 @@ BEGIN
         p.id,
         p.price
     FROM plate AS p;
-
-    -- Create fresh plate consumption totals for each participant for this event
-    INSERT INTO event_plate_consumption (event_id, participant_id, plate_id, quantity)
-    SELECT p_event_id,  
-           ep.participant_id, 
-           epl.id, 
-           0
-    FROM event_participant     AS ep,
-         event_plate           AS epl
-    WHERE ep.event_id  = p_event_id
-      AND epl.event_id = p_event_id ;
 
     SELECT 
         ROW_COUNT() AS rows_inserted,
@@ -573,8 +555,9 @@ END$$
 -- quantity to adjust by (expected to be +1 or -1). Check for an existing row,
 -- if one is found then update the quantity by the specified amount.
 --
--- If no existing row is found, return an ok code of 0 and an appropriate
--- status message.
+-- If no existing row is found, insert one (check the adjustment is +1)
+-- which should be the only valid value where no existing row is found, 
+-- otherwise return an ok code of 0 and an error message.
 --
 -- If the adjustment value is not +1 or -1, return an ok code of 0 and an
 -- appropriate status message.
@@ -600,7 +583,7 @@ BEGIN
         UPDATE event_plate_consumption
            SET quantity = quantity + p_adjustment
          WHERE event_id = p_event_id
-           AND participant_id = p_event_participant_id
+           AND event_participant_id = p_event_participant_id
            AND plate_id = p_event_plate_id;
         
         -- Check if any row was updated
@@ -609,7 +592,7 @@ BEGIN
             SELECT quantity INTO existing_qty
             FROM event_plate_consumption
             WHERE event_id = p_event_id
-              AND participant_id = p_event_participant_id
+              AND event_participant_id = p_event_participant_id
               AND plate_id = p_event_plate_id;
             
             -- Check the result - if quantity went negative, rollback and report error
@@ -617,7 +600,7 @@ BEGIN
                 UPDATE event_plate_consumption
                    SET quantity = 0
                  WHERE event_id = p_event_id
-                   AND participant_id = p_event_participant_id
+                   AND event_participant_id = p_event_participant_id
                    AND plate_id = p_event_plate_id;
                 
                 SELECT 0 AS ok, CONCAT(
@@ -634,7 +617,7 @@ BEGIN
             IF p_adjustment = 1 THEN
                 INSERT INTO event_plate_consumption (
                     event_id,
-                    participant_id,
+                    event_participant_id,
                     plate_id,
                     quantity
                 ) VALUES (
@@ -697,7 +680,7 @@ BEGIN
         UPDATE event_menu_consumption
            SET quantity = quantity + p_adjustment
          WHERE event_id = p_event_id
-           AND participant_id = p_event_participant_id
+           AND event_participant_id = p_event_participant_id
            AND menu_item_id = p_event_menu_item_id;
         
         -- Check if any row was updated
@@ -706,7 +689,7 @@ BEGIN
             SELECT quantity INTO existing_qty
             FROM event_menu_consumption
             WHERE event_id = p_event_id
-              AND participant_id = p_event_participant_id
+              AND event_participant_id = p_event_participant_id
               AND menu_item_id = p_event_menu_item_id;
             
             -- Check the result - if quantity went negative, rollback and report error
@@ -714,7 +697,7 @@ BEGIN
                 UPDATE event_menu_consumption
                    SET quantity = 0
                  WHERE event_id = p_event_id
-                   AND participant_id = p_event_participant_id
+                   AND event_participant_id = p_event_participant_id
                    AND menu_item_id = p_event_menu_item_id;
                 
                 SELECT 0 AS ok, CONCAT(
@@ -726,21 +709,35 @@ BEGIN
                 ) AS outcome;
             END IF;
         ELSE
-            -- No existing record, this is an error condition. When the event 
-            -- was created, a plate count for each plate was initialised to 
-            -- zero for each participant, so if we don't find a record here
-            -- it means something has gone wrong.
-            
-            SELECT 0 AS ok, CONCAT(
-                'Unexpected error: No row found for participant ',
-                p_event_participant_id,
-                ' at event ',
-                p_event_id,
-                ' with menu item ', 
-                p_event_menu_item_id,
-                '.'
-            ) AS outcome;
-            
+            -- No existing record was found. If the request is to increment,
+            -- create the missing row with a starting quantity of 1.
+            IF p_adjustment = 1 THEN
+                INSERT INTO event_menu_consumption (
+                    event_id,
+                    event_participant_id,
+                    menu_item_id,
+                    quantity
+                ) VALUES (
+                    p_event_id,
+                    p_event_participant_id,
+                    p_event_menu_item_id,
+                    1
+                );
+
+                SELECT 1 AS ok, CONCAT(
+                    'Menu item count created and incremented successfully.'
+                ) AS outcome;
+            ELSE
+                SELECT 0 AS ok, CONCAT(
+                    'Unexpected error: No row found for participant ',
+                    p_event_participant_id,
+                    ' at event ',
+                    p_event_id,
+                    ' with menu item ', 
+                    p_event_menu_item_id,
+                    '. Cannot decrease a non-existent count.'
+                ) AS outcome;
+            END IF;
         END IF;
     END IF;
 END $$
@@ -816,5 +813,57 @@ BEGIN
     ) AS summary;
 
 END$$
+
+-- ****************************************************************************
+-- Debug Set Plate Consumption
+-- ===========================
+--
+-- Debug procedure to directly set plate consumption for testing purposes.
+-- Inserts or updates the quantity for a specific event, participant, and plate.
+-- ****************************************************************************
+CREATE PROCEDURE debug_set_plate_consumption(
+    IN p_event_id INT,
+    IN p_participant_id INT,
+    IN p_plate_id INT,
+    IN p_quantity INT
+)
+BEGIN
+    INSERT INTO event_plate_consumption (event_id, participant_id, plate_id, quantity)
+    VALUES (p_event_id, p_participant_id, p_plate_id, p_quantity)
+    ON DUPLICATE KEY UPDATE quantity = p_quantity;
+
+    SELECT 1 AS ok, CONCAT(
+        'Plate consumption set for event ', p_event_id,
+        ', participant ', p_participant_id,
+        ', plate ', p_plate_id,
+        ' to ', p_quantity, '.'
+    ) AS outcome;
+END $$
+
+-- ****************************************************************************
+-- Debug Set Menu Consumption
+-- ==========================
+--
+-- Debug procedure to directly set menu item consumption for testing purposes.
+-- Inserts or updates the quantity for a specific event, participant, and menu item.
+-- ****************************************************************************
+CREATE PROCEDURE debug_set_menu_consumption(
+    IN p_event_id INT,
+    IN p_participant_id INT,
+    IN p_menu_item_id INT,
+    IN p_quantity INT
+)
+BEGIN
+    INSERT INTO event_menu_consumption (event_id, participant_id, menu_item_id, quantity)
+    VALUES (p_event_id, p_participant_id, p_menu_item_id, p_quantity)
+    ON DUPLICATE KEY UPDATE quantity = p_quantity;
+
+    SELECT 1 AS ok, CONCAT(
+        'Menu item consumption set for event ', p_event_id,
+        ', participant ', p_participant_id,
+        ', menu item ', p_menu_item_id,
+        ' to ', p_quantity, '.'
+    ) AS outcome;
+END $$
 
 DELIMITER ;

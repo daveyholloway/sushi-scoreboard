@@ -2,6 +2,9 @@
 -- In the consumption tables, menu_item_id and plate_id should be 
 -- event_menu_item_id and event_plate_id
 
+DROP DATABASE IF EXISTS sushi_scoreboard ;
+DROP USER IF EXISTS 'sushi_user'@'localhost' ;
+
 -- Create database and user
 CREATE DATABASE sushi_scoreboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -114,26 +117,26 @@ CREATE TABLE event_menu_item (
 
 -- Store consumption of coloured plates
 CREATE TABLE event_plate_consumption (
-    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id       INT UNSIGNED NOT NULL,
-    participant_id INT UNSIGNED NOT NULL,
-    plate_id       INT UNSIGNED NOT NULL,
-    quantity       INT UNSIGNED NOT NULL DEFAULT 0,
-    UNIQUE KEY uniq_plate_row (event_id, participant_id, plate_id),
-    CONSTRAINT fk_pc_event       FOREIGN KEY (event_id)       REFERENCES event(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pc_plate       FOREIGN KEY (plate_id)       REFERENCES event_plate(id) ON DELETE RESTRICT
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id             INT UNSIGNED NOT NULL,
+    event_participant_id INT UNSIGNED NOT NULL,
+    plate_id             INT UNSIGNED NOT NULL,
+    quantity             INT UNSIGNED NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_plate_row (event_id, event_participant_id, plate_id),
+    CONSTRAINT fk_pc_event       FOREIGN KEY (event_id)             REFERENCES event(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_participant FOREIGN KEY (event_participant_id) REFERENCES event_participant(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_plate       FOREIGN KEY (plate_id)             REFERENCES event_plate(id) ON DELETE RESTRICT
 );
 
 -- Store consumption of menu items 
 CREATE TABLE event_menu_consumption (
-    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id       INT UNSIGNED NOT NULL,
-    participant_id INT UNSIGNED NOT NULL,
-    menu_item_id   INT UNSIGNED NOT NULL,
-    quantity       INT UNSIGNED NOT NULL DEFAULT 0,
-    UNIQUE KEY uniq_menu_row (event_id, participant_id, menu_item_id),
-    CONSTRAINT fk_mc_event       FOREIGN KEY (event_id)       REFERENCES event(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mc_participant FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id             INT UNSIGNED NOT NULL,
+    event_participant_id INT UNSIGNED NOT NULL,
+    menu_item_id         INT UNSIGNED NOT NULL,
+    quantity           INT UNSIGNED NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_menu_row (event_id, event_participant_id, menu_item_id),
+    CONSTRAINT fk_mc_event       FOREIGN KEY (event_id)             REFERENCES event(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mc_participant FOREIGN KEY (event_participant_id) REFERENCES event_participant(id) ON DELETE CASCADE,
     CONSTRAINT fk_mc_menu        FOREIGN KEY (menu_item_id)   REFERENCES event_menu_item(id) ON DELETE RESTRICT
 );
