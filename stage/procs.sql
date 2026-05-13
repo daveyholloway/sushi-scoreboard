@@ -629,21 +629,35 @@ BEGIN
                 ) AS outcome;
             END IF;
         ELSE
-            -- No existing record, this is an error condition. When the event 
-            -- was created, a plate count for each plate was initialised to 
-            -- zero for each participant, so if we don't find a record here
-            -- it means something has gone wrong.
-            
-            SELECT 0 AS ok, CONCAT(
-                'Unexpected error: No row found for participant ',
-                p_event_participant_id,
-                ' at event ',
-                p_event_id,
-                ' with plate ', 
-                p_event_plate_id,
-                '.'
-            ) AS outcome;
-            
+            -- No existing record was found. If the request is to increment,
+            -- create the missing row with a starting quantity of 1.
+            IF p_adjustment = 1 THEN
+                INSERT INTO event_plate_consumption (
+                    event_id,
+                    participant_id,
+                    plate_id,
+                    quantity
+                ) VALUES (
+                    p_event_id,
+                    p_event_participant_id,
+                    p_event_plate_id,
+                    1
+                );
+
+                SELECT 1 AS ok, CONCAT(
+                    'Plate count created and incremented successfully.'
+                ) AS outcome;
+            ELSE
+                SELECT 0 AS ok, CONCAT(
+                    'Unexpected error: No row found for participant ',
+                    p_event_participant_id,
+                    ' at event ',
+                    p_event_id,
+                    ' with plate ', 
+                    p_event_plate_id,
+                    '. Cannot decrease a non-existent count.'
+                ) AS outcome;
+            END IF;
         END IF;
     END IF;
 END $$
