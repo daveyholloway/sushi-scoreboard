@@ -46,3 +46,29 @@ Remove a plate for a given event and event participant
 
 Add a menu item for a given event and event participant
 Remove a menu item for a given event and event participant
+
+
+
+
+
+Typical Workflow
+================
+View existing events                                                                                  [sp_list_events]
+Create a new Event                                                                                    [sp_create_event]
+Rename the event                                                                                      [sp_rename_event]
+Change the event date                                                                                 [TODO]
+Delete the event - END OF WORKFLOW                                                                    [TODO]
+
+View participants for the selected event                                                              [sp_list_event_participants]
+Allocate participants                                                                                 [sp_add_event_participant_by_id]
+Remove participants                                                                                   [sp_remove_event_participant_by_id]
+Optionally delete the event - END OF WORKFLOW (Cascades and deletes event participants)               [TODO]
+
+Assign plates and menu items to the event (automatically add all plates and menu items)               [sp_event_setup_menu_items][sp_event_setup_plates]
+Optionally remove individual plates and menu items.                                                   [TODO]
+Optionally change the prices for the specific event.                                                  [TODO]
+Optionally delete the event - END OF WORKFLOW (Cascades related entities)                             [TODO]
+
+Record consumption.                                                                                   [sp_update_event_participant_menu_item_count][sp_update_event_participant_plate_count]
+
+Report results.

@@ -11,7 +11,7 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS sp_list_events;
 DROP PROCEDURE IF EXISTS sp_create_event;
 DROP PROCEDURE IF EXISTS sp_delete_event;
-DROP PROCEDURE IF EXISTS sp_edit_event;
+DROP PROCEDURE IF EXISTS sp_rename_event;
 
 DROP PROCEDURE IF EXISTS sp_list_participants;
 DROP PROCEDURE IF EXISTS sp_create_participant ;
@@ -320,13 +320,13 @@ END $$
 -- TODO
 
 -- ****************************************************************************
--- Edit an event
--- =============
+-- Rename an event
+-- ===============
 --
 -- Pass in an event ID and update the description to the value provided.
 -- Returns a result set containing a success flag and status message.
 -- ****************************************************************************
-CREATE PROCEDURE sp_edit_event(
+CREATE PROCEDURE sp_rename_event(
     IN p_event_id   INT(10),
     IN p_name       VARCHAR(150)
 )
