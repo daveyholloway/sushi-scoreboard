@@ -36,7 +36,7 @@ DROP PROCEDURE IF EXISTS sp_event_setup_plates ;
 DROP PROCEDURE IF EXISTS sp_update_event_participant_plate_count ;
 DROP PROCEDURE IF EXISTS sp_update_event_participant_menu_item_count ;
 
-DROP PROCEDURE IF EXISTS sp_get_event_summary ;
+DROP PROCEDURE IF EXISTS debug_get_event_summary ;
 
 DROP PROCEDURE IF EXISTS debug_set_plate_consumption ;
 
@@ -762,7 +762,7 @@ END $$
 --
 -- Used for debugging / development.
 -- ****************************************************************************
-CREATE PROCEDURE sp_get_event_summary(IN in_event_id INT UNSIGNED)
+CREATE PROCEDURE debug_get_event_summary(IN in_event_id INT UNSIGNED)
 BEGIN
     DECLARE v_event_name VARCHAR(150);
     DECLARE v_event_date DATE;

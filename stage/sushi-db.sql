@@ -140,3 +140,46 @@ CREATE TABLE event_menu_consumption (
     CONSTRAINT fk_mc_participant FOREIGN KEY (event_participant_id) REFERENCES event_participant(id) ON DELETE CASCADE,
     CONSTRAINT fk_mc_menu        FOREIGN KEY (event_menu_item_id)   REFERENCES event_menu_item(id) ON DELETE RESTRICT
 );
+
+
+
+CREATE OR REPLACE VIEW `event_line_item` AS 
+select `emc`.`event_id` AS `event_id`,
+       `p`.`name` AS `participant_name`,
+       `mi`.`name` AS `dish`,
+       `emc`.`quantity` AS `quantity`,
+       `emi`.`price` AS `price`,
+       `emc`.`quantity` * `emi`.`price` AS `line_total` 
+   from ((((`event_menu_consumption` `emc` 
+       join `event_menu_item` `emi`) 
+       join `menu_item` `mi`) 
+       join `event_participant` `ep`) 
+       join `participant` `p`) 
+  where `emc`.`event_menu_item_id` = `emi`.`id` 
+    and `emi`.`menu_item_id` = `mi`.`id` 
+    and `emc`.`event_participant_id` = `ep`.`id` 
+    and `ep`.`participant_id` = `p`.`id` 
+    
+union all 
+
+select `epc`.`event_id` AS `event_id`,
+       `p`.`name` AS `participant_name`,
+       `pl`.`name` AS `dish`,
+       `epc`.`quantity` AS `quantity`,
+       `epl`.`price` AS `price`,
+       `epc`.`quantity` * `epl`.`price` AS `line_total` 
+  from ((((`event_plate_consumption` `epc` 
+      join `event_plate` `epl`) 
+      join `plate` `pl`) 
+      join `event_participant` `ep`) 
+      join `participant` `p`) 
+ where `epc`.`event_plate_id` = `epl`.`id` 
+   and `epl`.`plate_id` = `pl`.`id` 
+   and `epc`.`event_participant_id` = `ep`.`id` 
+   and `ep`.`participant_id` = `p`.`id` 
+ order by 2,3;
+
+CREATE  OR REPLACE VIEW `event_participant_total` AS
+SELECT event_id, participant_name, sum(line_total) 
+  FROM sushi_scoreboard.event_line_item
+ GROUP BY event_id, participant_name ;
