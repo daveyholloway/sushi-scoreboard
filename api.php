@@ -1,5 +1,9 @@
 <?php
 // api.php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/config.php';
 
@@ -19,17 +23,26 @@ function call_sp(PDO $pdo, string $procedure, array $params = []): PDOStatement 
     return $stmt;
 }
 
+
 function fetch_sp_all(PDO $pdo, string $procedure, array $params = []): array {
     $stmt = call_sp($pdo, $procedure, $params);
+
+    // Fetch the first result set
     $rows = $stmt->fetchAll();
+
+    // Consume remaining result sets
     while ($stmt->nextRowset()) {}
+
     return $rows;
 }
 
 function fetch_sp_one(PDO $pdo, string $procedure, array $params = []): array {
     $stmt = call_sp($pdo, $procedure, $params);
+
     $row = $stmt->fetch() ?: [];
+
     while ($stmt->nextRowset()) {}
+
     return $row;
 }
 

@@ -1,7 +1,7 @@
 <?php
 // config.php
 $DB_HOST = 'localhost';
-$DB_NAME = 'sushi_tracker';
+$DB_NAME = 'sushi_scoreboard';
 $DB_USER = 'sushi_user';
 $DB_PASS = 'supersecretsushipa55worD';
 
